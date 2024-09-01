@@ -1,34 +1,32 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
-import { AuthService } from '../auth/auth.service';
-import { LocalAuthGuard } from './local-auth.guard.';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { Body, Controller, Delete, Get, Param, Put } from '@nestjs/common';
+import { UserService } from './user.service';
+import { User } from './schemas/user.schema';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly userService: UserService) {}
 
-  @Post('signup')
-  async signup(@Body() body) {
-    const { username, password } = body;
-    return this.authService.signup(username, password);
+  @Get()
+  async findAll(): Promise<User[]> {
+    return this.userService.findAll();
   }
 
-  @UseGuards(LocalAuthGuard)
-  @Post('login')
-  async login(@Request() req) {
-    return this.authService.login(req.user);
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<User> {
+    return this.userService.findOne(id);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  getProfile(@Request() req) {
-    return req.user;
+  @Delete(':id')
+  async delete(@Param('id') id: string) {
+    return this.userService.delete(id);
+  }
+
+  @Put(':id')
+  async updateUser(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User> {
+    return this.userService.update(id, updateUserDto);
   }
 }

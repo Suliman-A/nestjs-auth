@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcryptjs';
@@ -10,26 +14,33 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(username: string, password: string): Promise<any> {
+  async signIn(username: string, pass: string) {
     const user = await this.userService.findOne(username);
+    // if (user?.password !== pass) {
+    //   throw new UnauthorizedException();
+    // }
 
-    if (user && (await bcrypt.compare(password, user.password))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password: _, ...result } = user.toObject();
-      return result;
+    if (!user) {
+      throw new UnauthorizedException('Invalid username or password.');
     }
 
-    return null;
-  }
+    const isPasswordValid = await bcrypt.compare(pass, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid username or password.');
+    }
 
-  async login(user: any) {
     const payload = { username: user.username, sub: user._id };
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: await this.jwtService.signAsync(payload),
     };
   }
 
   async signup(username: string, password: string): Promise<any> {
+    const existingUser = await this.userService.findOne(username);
+    if (existingUser) {
+      throw new BadRequestException('Username already exists');
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     return this.userService.create({ username, password: hashedPassword });
   }
